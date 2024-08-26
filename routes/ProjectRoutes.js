@@ -5,7 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 const multer = require("multer");
-const sqlite3 = require("sqlite3").verbose();
+const sqlite3 = require("sqlite3");
 
 const app = express();
 app.use(cors());
@@ -87,7 +87,8 @@ app.post("/execute-query", (req, res) => {
     if (err) {
       return res.status(400).json({ error: err.message });
     }
-    res.json({ results: rows });
+    const results = rows.map((row) => Object.values(row));
+    res.json({ results });
   });
 
   db.close();
