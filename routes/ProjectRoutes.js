@@ -13,7 +13,20 @@ app.use(cors());
 app.use(express.json());
 
 // Configure multer for file uploads
-const upload = multer({ dest: "uploads/" });
+const upload = multer({
+  dest: "uploads/",
+  fileFilter: (req, file, cb) => {
+    const allowedExtensions = [".sqlite", ".csv"];
+    const fileExtension = path.extname(file.originalname).toLowerCase();
+    if (allowedExtensions.includes(fileExtension)) {
+      cb(null, true);
+    } else {
+      cb(
+        new Error("Invalid file type. Only .sqlite and .csv files are allowed.")
+      );
+    }
+  },
+});
 
 // Function to delete old files
 const deleteOldFiles = () => {
@@ -96,36 +109,40 @@ const convertCsvToSqlite = (csvFilePath, sqliteFilePath) => {
 
 // Endpoint for uploading .sqlite or .csv files
 app.post("/upload-file", upload.single("file"), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: "No file uploaded" });
-  }
-
-  const fileUuid = uuidv4();
-  const fileExtension = path.extname(req.file.originalname).toLowerCase();
-  let newFilePath;
-
-  if (fileExtension === ".sqlite") {
-    newFilePath = `uploads/${fileUuid}.sqlite`;
-    fs.renameSync(req.file.path, newFilePath);
-  } else if (fileExtension === ".csv") {
-    const csvFilePath = req.file.path;
-    newFilePath = `uploads/${fileUuid}.sqlite`;
-    try {
-      await convertCsvToSqlite(csvFilePath, newFilePath);
-      fs.unlinkSync(csvFilePath); // Delete the original CSV file
-    } catch (error) {
-      return res.status(500).json({ error: "Error converting CSV to SQLite" });
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
     }
-  } else {
-    fs.unlinkSync(req.file.path); // Delete the uploaded file
-    return res
-      .status(400)
-      .json({
-        error: "Invalid file type. Only .sqlite and .csv files are allowed.",
-      });
-  }
 
-  res.json({ uuid: fileUuid });
+    const fileUuid = uuidv4();
+    const fileExtension = path.extname(req.file.originalname).toLowerCase();
+    let newFilePath;
+
+    if (fileExtension === ".sqlite") {
+      newFilePath = `uploads/${fileUuid}.sqlite`;
+      fs.renameSync(req.file.path, newFilePath);
+    } else if (fileExtension === ".csv") {
+      const csvFilePath = req.file.path;
+      newFilePath = `uploads/${fileUuid}.sqlite`;
+      try {
+        await convertCsvToSqlite(csvFilePath, newFilePath);
+        fs.unlinkSync(csvFilePath); // Delete the original CSV file
+      } catch (error) {
+        return res
+          .status(500)
+          .json({ error: "Error converting CSV to SQLite" });
+      }
+    }
+
+    res.json({ uuid: fileUuid });
+  } catch (error) {
+    if (error instanceof multer.MulterError) {
+      return res
+        .status(400)
+        .json({ error: "File upload error: " + error.message });
+    }
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // Endpoint for executing SQL queries on uploaded databases
