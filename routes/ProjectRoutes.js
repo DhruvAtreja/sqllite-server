@@ -38,6 +38,9 @@ const deleteOldFiles = () => {
       return;
     }
     files.forEach((file) => {
+      if (file.includes("111.sqlite")) {
+        return; // Skip deleting '1.sqlite'
+      }
       const filePath = path.join(uploadsDir, file);
       fs.stat(filePath, (err, stats) => {
         if (err) {
