@@ -6,6 +6,7 @@ const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 const multer = require("multer");
 const sqlite3 = require("sqlite3");
+const csv = require("csv-parser");
 
 const app = express();
 app.use(cors());
@@ -49,22 +50,82 @@ const deleteOldFiles = () => {
 // Set up interval to run deleteOldFiles every hour
 setInterval(deleteOldFiles, 3600000);
 
-// Endpoint for uploading .sqlite files
-app.post("/upload-sqlite", upload.single("sqliteFile"), (req, res) => {
+// Function to convert CSV to SQLite
+const convertCsvToSqlite = (csvFilePath, sqliteFilePath) => {
+  return new Promise((resolve, reject) => {
+    const db = new sqlite3.Database(sqliteFilePath);
+    const results = [];
+
+    fs.createReadStream(csvFilePath)
+      .pipe(csv())
+      .on("data", (data) => results.push(data))
+      .on("end", () => {
+        if (results.length === 0) {
+          db.close();
+          reject(new Error("CSV file is empty"));
+          return;
+        }
+
+        const columns = Object.keys(results[0]);
+        const tableName = "csv_data";
+        const createTableQuery = `CREATE TABLE ${tableName} (${columns
+          .map((col) => `"${col}" TEXT`)
+          .join(", ")})`;
+
+        db.serialize(() => {
+          db.run(createTableQuery);
+
+          const stmt = db.prepare(
+            `INSERT INTO ${tableName} VALUES (${columns
+              .map(() => "?")
+              .join(", ")})`
+          );
+          results.forEach((row) => {
+            stmt.run(Object.values(row));
+          });
+          stmt.finalize();
+
+          db.close((err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      });
+  });
+};
+
+// Endpoint for uploading .sqlite or .csv files
+app.post("/upload-file", upload.single("file"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No file uploaded" });
   }
 
   const fileUuid = uuidv4();
-  const newFilePath = `uploads/${fileUuid}.sqlite`;
-  console.log(newFilePath);
+  const fileExtension = path.extname(req.file.originalname).toLowerCase();
+  let newFilePath;
 
-  fs.rename(req.file.path, newFilePath, (err) => {
-    if (err) {
-      return res.status(500).json({ error: "Error saving file" });
+  if (fileExtension === ".sqlite") {
+    newFilePath = `uploads/${fileUuid}.sqlite`;
+    fs.renameSync(req.file.path, newFilePath);
+  } else if (fileExtension === ".csv") {
+    const csvFilePath = req.file.path;
+    newFilePath = `uploads/${fileUuid}.sqlite`;
+    try {
+      await convertCsvToSqlite(csvFilePath, newFilePath);
+      fs.unlinkSync(csvFilePath); // Delete the original CSV file
+    } catch (error) {
+      return res.status(500).json({ error: "Error converting CSV to SQLite" });
     }
-    res.json({ uuid: fileUuid });
-  });
+  } else {
+    fs.unlinkSync(req.file.path); // Delete the uploaded file
+    return res
+      .status(400)
+      .json({
+        error: "Invalid file type. Only .sqlite and .csv files are allowed.",
+      });
+  }
+
+  res.json({ uuid: fileUuid });
 });
 
 // Endpoint for executing SQL queries on uploaded databases
