@@ -1,30 +1,38 @@
-# MongoDB + NodeJS + ExpressJs
+This repository was created to provider a server to manage and query .sqlite and .csv files for the Database Visualization project sponsored by Langchain. Here are the repositories for the project:
 
-## Signup here for free
+- [LangGraph Cloud Backend](https://github.com/DhruvAtreja/DataVisualization)
+- [Frontend](https://github.com/DhruvAtreja/data-visualization-frontend)
 
-- <https://www.mongodb.com/pricing/>
+The project is deployed on [here](https://data-visualization-frontend-gamma.vercel.app/).
+
+## Features
+
+- File upload support for .sqlite and .csv files
+- Automatic deletion of old files (older than 4 hours)
+- Query the database using SQL
+- Get the schema of the database
 
 ## Setup
 
-- <https://docs.atlas.mongodb.com/getting-started/>
-- <https://docs.mongodb.com/manual/installation/>
+1. Install dependencies:
 
-## Tutorials
+   ```
+   yarn install
+   ```
 
-- <https://www.digitalocean.com/community/tutorials/how-to-create-retrieve-update-and-delete-records-in-mongodb/>
-- <https://www.freecodecamp.org/news/introduction-to-mongoose-for-mongodb-d2a7aa593c57/>
-- https://masteringjs.io/mongoose
-- http://tutorialtous.com/mongoose/mongooseapi.php
--https://masteringjs.io/tutorials/mongoose/find
+2. Start the server:
+   ```
+   yarn start
+   ```
 
+## File Upload
 
-## Sample Code to connect mongoDB using MongoClient
+The API supports file uploads with the following constraints:
 
-```const MongoClient = require('mongodb').MongoClient;
-const uri = "mongodb+srv://sa:<password>@cluster0.qa3t4.mongodb.net/<dbname>?retryWrites=true&w=majority";
-const client = new MongoClient(uri, { useNewUrlParser: true });
-client.connect(err => {
-  const collection = client.db("test").collection("devices");
-  // perform actions on the collection object
-  client.close();
-});```
+- Allowed file types: .sqlite and .csv
+- Files are stored in the `uploads/` directory
+- A unique filename is generated for each upload using UUID
+
+## File Cleanup
+
+The server automatically deletes files older than 4 hours from the `uploads/` directory. However, it preserves a file named '921c838c-541d-4361-8c96-70cb23abd9f5.sqlite', which is the default database for the project.
