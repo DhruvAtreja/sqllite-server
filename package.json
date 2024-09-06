@@ -1,29 +1,12 @@
 {
-  "name": "w4_3133_nodejs_express_mongodb_template",
+  "name": "sqlite-server",
   "version": "1.0.0",
-  "description": "Advanve mongodb, mongoos and express",
+  "description": "Store and retrieve data from SQLite",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon index.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/pritamworld/w4_3133_nodejs_express_mongodb_template.git"
-  },
-  "keywords": [
-    "mongoose",
-    "mongodb",
-    "express",
-    "REST",
-    "API"
-  ],
-  "author": "Pritesh Patel",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/pritamworld/w4_3133_nodejs_express_mongodb_template/issues"
-  },
-  "homepage": "https://github.com/pritamworld/w4_3133_nodejs_express_mongodb_template#readme",
   "dependencies": {
     "cors": "^2.8.5",
     "csv-parser": "^3.0.0",
